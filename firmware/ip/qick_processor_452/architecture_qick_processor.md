@@ -1,6 +1,6 @@
-# QICK Processor ([qick_processor.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qick_processor.sv)) Architecture Overview
+# QICK Processor ([qick_processor.sv](./src/qick_processor.sv)) Architecture Overview
 
-The [qick_processor.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qick_processor.sv) file is the **top-level design entity** for the tProc v2 processor. It acts as the "motherboard", instantiating the CPU core(s), memory interfaces, peripheral units, clock/time management, and the communication logic between the Programmable Logic (PL) and the Processing System (PS/ARM).
+The [qick_processor.sv](./src/qick_processor.sv) file is the **top-level design entity** for the tProc v2 processor. It acts as the "motherboard", instantiating the CPU core(s), memory interfaces, peripheral units, clock/time management, and the communication logic between the Programmable Logic (PL) and the Processing System (PS/ARM).
 
 This document breaks down the major components and data flows defined within this file.
 
@@ -8,17 +8,17 @@ This document breaks down the major components and data flows defined within thi
 
 ## 1. Top-Level Ports and Clock Domains
 
-The [qick_processor.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qick_processor.sv) module operates across three distinct clock domains. Understanding these domains is essential for reading the RTL (Register-Transfer Level) code, as signals are heavily prefixed with their respective domain marker.
+The [qick_processor.sv](./src/qick_processor.sv) module operates across three distinct clock domains. Understanding these domains is essential for reading the RTL (Register-Transfer Level) code, as signals are heavily prefixed with their respective domain marker.
 
 ### Clock Domains
 1. **`ps_` (Processing System Clock)**: 
    - Typically slower (e.g., 100 MHz).
    - Driven by the ARM Cortex processor.
    - Used for AXI-Lite (register configurations) and AXI-Stream for Direct Memory Access (DMA).
-2. **[c_](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#301-324) (Core Clock)**: 
+2. **[c_](../../../qick_lib/qick/tprocv2_assembler.py#L301-L324) (Core Clock)**: 
    - The main processor clock (typically 300 to 500 MHz).
-   - Drives the core pipeline ([qproc_core.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_core.sv)), ALU, and register banks.
-3. **[t_](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#580-1005) (Time/Base Clock)**: 
+   - Drives the core pipeline ([qproc_core.sv](./src/qproc_core.sv)), ALU, and register banks.
+3. **[t_](../../../qick_lib/qick/tprocv2_assembler.py#L580-L1005) (Time/Base Clock)**: 
    - A highly stable, fast clock locked to the ADC/DAC sample rate.
    - The absolute time counter (`time_abs`) and Output Dispatcher run on this clock to ensure picosecond/nanosecond pulse determinism.
 
@@ -34,40 +34,40 @@ The [qick_processor.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/q
 
 The top-level `qick_processor` delegates specialized tasks to a series of sub-modules. The following hierarchical breakdown maps code to functionality.
 
-### 2.1 `QPROC_CTRL` ([qproc_ctrl.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_ctrl.sv))
+### 2.1 `QPROC_CTRL` ([qproc_ctrl.sv](./src/qproc_ctrl.sv))
 **Function:** Time Management & State Control
-* Maintains the 48-bit absolute timer (`time_abs`) running in the [t_](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#580-1005) clock domain.
+* Maintains the 48-bit absolute timer (`time_abs`) running in the [t_](../../../qick_lib/qick/tprocv2_assembler.py#L580-L1005) clock domain.
 * Handles processor startup/stop sequences and synchronized resets (`core_rst`, `time_rst`).
 * Manages the User Reference Time (`c_time_ref`). When an `INC T_ref` instruction is executed, this module calculates and stores the new anchor time.
 
-### 2.2 `IN_PORT_REG` ([qproc_inport_reg.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_inport_reg.sv))
+### 2.2 `IN_PORT_REG` ([qproc_inport_reg.sv](./src/qproc_inport_reg.sv))
 **Function:** Synchronizing External Inputs
 * Captures high-speed asynchronous or AXI-Stream external inputs (from digitizers or logic blocks).
 * Emits a `port_dt_new` flag to alert the processor that fresh data is available for reading, enabling synchronized feedback loops.
 
-### 2.3 `QMEM_CTRL` ([qproc_mem_ctrl.v](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_mem_ctrl.v))
+### 2.3 `QMEM_CTRL` ([qproc_mem_ctrl.v](./src/qproc_mem_ctrl.v))
 **Function:** Memory Bus Arbitrator
 * The processor requires three memories: Program Memory (PMEM), Data Memory (DMEM), and Waveform Memory (WMEM). 
 * `QMEM_CTRL` provides an arbitration layer so both the PS (via DMA) and the soft-core CPU (`qproc_core`) can write to / read from these memories without colliding.
 
-### 2.4 `QPROC_xREG` ([qproc_axi_reg.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_axi_reg.sv))
+### 2.4 `QPROC_xREG` ([qproc_axi_reg.sv](./src/qproc_axi_reg.sv))
 **Function:** Software/Hardware Interface
 * This block maps pure Python commands to physical hardware flags.
 * Captures AXI-Lite writes and converts them into core control registers (e.g., `xreg_TPROC_CFG`, `xreg_CORE_CFG`).
 * Aggregates processor status flags (`xreg_TPROC_STATUS`) so the Python environment can check if the processor has finished a program or encountered an error.
 
-### 2.5 `CORE_0` (and `CORE_1`) ([qproc_core.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_core.sv))
+### 2.5 `CORE_0` (and `CORE_1`) ([qproc_core.sv](./src/qproc_core.sv))
 **Function:** The CPU Pipeline
 * The actual processing brain. It fetches 72-bit instructions, decodes them, and executes mathematical operations.
 * Contains the Program Counter (PC), Register Bank (128 registers), ALU, and branch logic.
 * If `DUAL_CORE=1` is parameterized, a secondary processor (`CORE_1`) is instantiated, allowing parallel quantum experiments. Note that `CORE_1` can communicate with `CORE_0` but shares the same memory space.
 
 ### 2.6 Hardware Accelerators (Peripherals)
-Quantum control requires mathematical operations faster than standard ALUs can provide. [qick_processor.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qick_processor.sv) wires specialized IP blocks directly to the core:
+Quantum control requires mathematical operations faster than standard ALUs can provide. [qick_processor.sv](./src/qick_processor.sv) wires specialized IP blocks directly to the core:
 * **`DIV`**: A hardware integer divider. Division takes multiple clock cycles. The processor issues the command and waits for the `div_rdy` (ready) signal before extracting the quotient and remainder.
-* **[ARITH](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#1799-1873)**: The DSP-based Arithmetic Peripheral. Used primarily for phase offsets and magnitude multiplication [(A*B)+C]. It executes these commands via DSP slices for single/dual-cycle throughput.
+* **[ARITH](../../../qick_lib/qick/tprocv2_assembler.py#L1799-L1873)**: The DSP-based Arithmetic Peripheral. Used primarily for phase offsets and magnitude multiplication [(A*B)+C]. It executes these commands via DSP slices for single/dual-cycle throughput.
 
-### 2.7 `DISPATCHER` ([qproc_dispatcher.sv](file:///e:/Homework_NU/winter_project/qick/firmware/ip/qick_processor_452/src/qproc_dispatcher.sv))
+### 2.7 `DISPATCHER` ([qproc_dispatcher.sv](./src/qproc_dispatcher.sv))
 **Function:** Pulse Output Scheduling
 * When the core executes a `WPORT_WR` or `TRIG` command, it assigns an execution timestamp (`s14`).
 * The `DISPATCHER` receives the parameters (Frequency, Phase, Gain, etc.) and the timestamp, dropping them into deep asynchronous FIFOs.
@@ -79,9 +79,9 @@ Quantum control requires mathematical operations faster than standard ALUs can p
 
 To understand how data flows between these instantiated modules, refer to the signal suffixes:
 
-* **Inputs**: End in [_i](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#422-425) (e.g., `t_clk_i`, `port_tvalid_i`).
+* **Inputs**: End in [_i](../../../qick_lib/qick/tprocv2_assembler.py#L422-L425) (e.g., `t_clk_i`, `port_tvalid_i`).
 * **Outputs**: End in `_o` (e.g., `port_tvalid_o`).
-* **Registers**: End in [_r](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#374-381) (Indicates the signal comes from a flip-flop, ensuring clean cycle timing).
+* **Registers**: End in [_r](../../../qick_lib/qick/tprocv2_assembler.py#L374-L381) (Indicates the signal comes from a flip-flop, ensuring clean cycle timing).
 * **Enable/Configure**: Suffixes like `_en` (Enable) or `_pen` (Peripheral Enable, like `int_arith_pen`).
 * **Debug**: Suffixes like `_ds` (Debug Signal) or `_do` (Debug Output) are grouped directly to standard outputs for ILA (Integrated Logic Analyzer) tapping.
 
@@ -89,6 +89,6 @@ To understand how data flows between these instantiated modules, refer to the si
 
 1. **Initialization**: Software loads instructions via DMA into PMEM through `QMEM_CTRL`.
 2. **Start**: Software asserts `proc_start` via AXI (`QPROC_xREG`), which tells `QPROC_CTRL` to un-reset the core.
-3. **Execution**: `CORE_0` begins fetching instructions. When it encounters math, it utilizes the local ALU or pushes data out to the [ARITH](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#1799-1873) block.
+3. **Execution**: `CORE_0` begins fetching instructions. When it encounters math, it utilizes the local ALU or pushes data out to the [ARITH](../../../qick_lib/qick/tprocv2_assembler.py#L1799-L1873) block.
 4. **I/O Dispatch**: If a waveform instruction is decoded, `CORE_0` streams 168-bits of parameter data + output time into the `DISPATCHER`.
-5. **Real-time Fire**: The `DISPATCHER` waits on the [t_](file:///e:/Homework_NU/winter_project/qick/qick_lib/qick/tprocv2_assembler.py#580-1005) clock. When `time_abs == target_time`, it outputs the data to the DAC blocks.
+5. **Real-time Fire**: The `DISPATCHER` waits on the [t_](../../../qick_lib/qick/tprocv2_assembler.py#L580-L1005) clock. When `time_abs == target_time`, it outputs the data to the DAC blocks.

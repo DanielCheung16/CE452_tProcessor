@@ -1,0 +1,92 @@
+# tProc v2 Technical Manual (ISA & Architecture)
+
+This document provides a comprehensive overview of the **tProc v2** (72-bit) architecture, designed for the QICK (Quantum Instrumentation Control Kit) platform.
+
+---
+
+## 1. Instruction Format (72-bit)
+
+Each instruction is exactly 72 bits wide, divided into a **Header (16-bit)** and a **Payload (56-bit)**.
+
+### Instruction Bit-Fields
+| Bits               | Field                                                           | Description                                                 |
+| :----------------- | :-------------------------------------------------------------- | :---------------------------------------------------------- |
+| **Header [71:56]** |                                                                 |                                                             |
+| 15:13              | `HEADER`                                                        | OpCode (3 bits): CFG, BRANCH, REG_WR, etc.                  |
+| 12                 | [AI](../../../qick_lib/qick/tprocv2_assembler.py#L1874-L1912)   | Address Immediate Flag (1: IMM, 0: REG)                     |
+| 11:10              | `DF`                                                            | Data Format (2 bits): 16-bit, 24-bit, 32-bit IMM support.   |
+| 9:7                | [COND](../../../qick_lib/qick/tprocv2_assembler.py#L1147-L1157) | Condition Code (3 bits): ALWAYS, EQ, LT, NZ, NS, FLAG, etc. |
+| 6                  | [SO](../../../qick_lib/qick/tprocv2_assembler.py#L1202-L1307)   | Source Option / Type modifier.                              |
+| 5                  | `TO`                                                            | Time Option / Multi-function bit.                           |
+| 4:0                | `UF/ALU`                                                        | Update Flag / ALU op (reduced set for fused instructions).  |
+| **Payload [55:0]** |                                                                 |                                                             |
+| 55:45              | `ADDR/rsA0`                                                     | Address 0 or Literal Address.                               |
+| 44:39              | `rsA1`                                                          | Address Register 1.                                         |
+| 38:7               | `IMM / rsD`                                                     | 32-bit Immediate data or Dual source registers.             |
+| 6:0                | `RD`                                                            | Destination Register address (7 bits = 128 regs).           |
+
+---
+
+## 2. Register Map
+
+tProc v2 utilizes 128 addressable registers, categorized by their prefix/function:
+
+### 2.1 Special Function Registers (sREG: `s0` - `s15`)
+| Addr                                               | Mnemonic                                               | Description                                     |
+| :------------------------------------------------- | :----------------------------------------------------- | :---------------------------------------------- |
+| `s0`                                               | `zero`                                                 | Constant 0.                                     |
+| `s1`                                               | `s_rand`                                               | LFSR Random Number generator.                   |
+| [s2](../../../qick_lib/qick/asm_v2.py#L1721-L1735) | `s_cfg`                                                | Configuration and Control bits.                 |
+| `s3`                                               | `s_arith`                                              | ALU lower 32-bit result (Arith IP).             |
+| `s4-s5`                                            | `s_div`                                                | Divider Quotient and Remainder.                 |
+| `s10`                                              | `s_status`                                             | Processor status flags (Ready, New Data, etc.). |
+| `s11`                                              | `s_time`                                               | Current User Time (Master Clock).               |
+| `s14`                                              | `s_out_time`                                           | Time used for the next output.                  |
+| `s15`                                              | [s_addr](../../../qick_lib/qick/asm_v2.py#L2621-L2637) | Current Program Counter (PC).                   |
+
+### 2.2 Data Registers (dREG: `r0` - `r31`)
+General-purpose 32-bit registers for user computation and variables.
+
+### 2.3 Waveform Registers (wREG: `w0` - `w15`)
+Specialized registers meant for pulse parameterization (Frequency, Phase, Envelope, etc.).
+
+---
+
+## 3. Instruction Set Architecture (ISA)
+
+Basic OpCodes defined in [_qproc_defines.svh](../qick_processor/src/_qproc_defines.svh):
+
+| OpCode (3-bit) | Mnemonic                                                           | Primary Function                                      |
+| :------------- | :----------------------------------------------------------------- | :---------------------------------------------------- |
+| `000`          | [CFG](../../../qick_lib/qick/tprocv2_assembler.py#L1494-L1510)     | Configure internal states or update flags.            |
+| `001`          | [BRANCH](../../../qick_lib/qick/tprocv2_assembler.py#L1511-L1544)  | Jump or Call based on condition.                      |
+| `010`          | `ARITH/CTRL`                                                       | Extended math (DSP blocks) or Peripheral control.     |
+| `100`          | [REG_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1351-L1439)  | Standard register write (ALU, IMM, or MEM).           |
+| `101`          | [MEM_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1440-L1465)  | Write to Data Memory or Wave Memory.                  |
+| `110`          | [PORT_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1545-L1654) | **Fused Instruction**: Pulse output + Register write. |
+
+> [!IMPORTANT]
+> **Conditional Execution**: EVERY instruction in v2 can be conditional. By setting the [COND](../../../qick_lib/qick/tprocv2_assembler.py#L1147-L1157) field in the header, an instruction will only execute if the ALU flags or external triggers match the condition.
+
+---
+
+## 4. Pipeline Structure
+
+tProc v2 implements a **5-stage pipeline**:
+1. **Fetch**: Read instruction from PMEM.
+2. **Decode**: Extract fields, check conditions, read register file.
+3. **Ex1**: Address calculation and ALU Phase 1.
+4. **Ex2**: Memory access or Port output.
+5. **WriteBack**: Update registers with results.
+
+---
+
+## 5. Recommended Learning Path (RTL Files)
+
+If you want to master the structure, read these RTL files in order:
+
+1. **[_qproc_defines.svh](../qick_processor/src/_qproc_defines.svh)**: The "Dictionary". Understand the structs and OpCode naming.
+2. **[qcore_cpu.sv](../qick_processor/src/qcore_cpu.sv)**: The "Brain". Focus on the `DECODER` logic (approx. Line 190) and the `PIPELINE` stages.
+3. **[qcore_reg_bank.sv](../qick_processor/src/qcore_reg_bank.sv)**: The "Memory". See how registers are muxed and how SFRs are mapped.
+4. **[_qproc_ips.sv](../qick_processor/src/_qproc_ips.sv)**: The "Tools". Deep dive into the `AB_alu` logic to see supported math ops.
+5. **[tprocv2_assembler.py](../../../qick_lib/qick/tprocv2_assembler.py)**: The "Translator". See how high-level ASM maps to the 72-bit bitstream.

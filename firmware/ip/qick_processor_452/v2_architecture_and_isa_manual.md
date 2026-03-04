@@ -35,20 +35,20 @@ The ISA supports **128 addressable registers** divided into 4 pages (32 register
 > * **WREG Implementation**: Although 16 addresses are mapped, only **6 physical 32-bit registers** (`w0`-`w5`) are used. This provides 192 bits of storage, which is used to hold a single 168-bit Waveform Packet (Frequency, Phase, Envelope, Gain, etc.) sent to the Signal Generators.
 
 #### 2.2.1 Special Function Registers (SFR: `s0` - `s15`)
-| Addr      | Mnemonic     | Description                                                 |
-| :-------- | :----------- | :---------------------------------------------------------- |
-| `s0`      | `zero`       | Constant 0.                                                 |
-| `s1`      | `s_rand`     | 32-bit LFSR Random Number.                                  |
-| `s2`      | `s_cfg`      | Configuration [7:0] and Control [23:16].                    |
-| `s3`      | `s_arith`    | ALU lower 32-bit result from DSP block.                     |
-| `s4-s5`   | `s_div`      | Divider Quotient (`s4`) and Remainder (`s5`).               |
-| `s6-s7`   | `s_ext`      | External Input Data (Muxed via s2[23:16]).                  |
-| `s8-s9`   | `s_port`     | Last read Input Port Data: `s8` (Low 32b), `s9` (High 32b). |
-| `s10`     | `s_status`   | Status flags (Arithmetic Rdy, New Port Data, FIFO full).    |
-| `s11`     | `s_time`     | **User Time**: Lower 32 bits of relative clock.             |
-| `s12-s13` | `s_core`     | Core-to-Core / PS-to-Core mailbox registers.                |
-| `s14`     | `s_out_time` | **Execution Time**: 32-bit timestamp for next output.       |
-| `s15`     | `s_addr`     | Return address for CALL/RET or PC logic.                    |
+| Addr                                               | Mnemonic                                               | Description                                                                                |
+| :------------------------------------------------- | :----------------------------------------------------- | :----------------------------------------------------------------------------------------- |
+| `s0`                                               | `zero`                                                 | Constant 0.                                                                                |
+| `s1`                                               | `s_rand`                                               | 32-bit LFSR Random Number.                                                                 |
+| [s2](../../../qick_lib/qick/asm_v2.py#L1721-L1735) | `s_cfg`                                                | Configuration [7:0] and Control [23:16].                                                   |
+| `s3`                                               | `s_arith`                                              | ALU lower 32-bit result from DSP block.                                                    |
+| `s4-s5`                                            | `s_div`                                                | Divider Quotient (`s4`) and Remainder (`s5`).                                              |
+| `s6-s7`                                            | `s_ext`                                                | External Input Data (Muxed via [s2](../../../qick_lib/qick/asm_v2.py#L1721-L1735) config). |
+| `s8-s9`                                            | `s_port`                                               | Last read Input Port Data: `s8` (Low 32b), `s9` (High 32b).                                |
+| `s10`                                              | `s_status`                                             | Status flags (Arithmetic Rdy, New Port Data, FIFO full).                                   |
+| `s11`                                              | `s_time`                                               | **User Time**: Lower 32 bits of relative clock.                                            |
+| `s12-s13`                                          | `s_core`                                               | Core-to-Core / PS-to-Core mailbox registers.                                               |
+| `s14`                                              | `s_out_time`                                           | **Execution Time**: 32-bit timestamp for next output.                                      |
+| `s15`                                              | [s_addr](../../../qick_lib/qick/asm_v2.py#L2621-L2637) | Return address for CALL/RET or PC logic.                                                   |
 
 ---
 
@@ -60,7 +60,7 @@ The tProc v2 hardware maintains a **48-bit absolute timer** (`time_abs`) within 
 ### 3.2 Relative Timing (tProc v2 Core)
 To simplify programming and instruction width, the **tProc v2 core** (the soft-core on the FPGA) operates in a **32-bit relative window**.
 - **Reference Time (`T_ref`)**: A 48-bit internal hardware register.
-- **User Time (`s11`)**: The tProc v2 core sees this as [(Absolute_Time - T_ref)[31:0]].
+- **User Time (`s11`)**: The tProc v2 core sees this as [(Absolute_Time - T_ref)[31:0]](../../../qick_lib/qick/asm_v1.py#L1333-L1343).
 - **Scheduled Time (`s14`)**: When an instruction is sent to a port, the core uses the 32-bit `s14` value, which the hardware **sign-extends to 48 bits** and adds to `T_ref`.
 
 ### 3.3 Interaction with the PS (ARM)
@@ -100,19 +100,19 @@ The 72-bit instruction is split into a **Header [71:56]** (also called `op_code`
 ### 4.1 Header Bit-Fields [71:56]
 These bits are consistent across most instructions:
 
-| Bit(s) | Field    | Description                                                                                                 |
-| :----- | :------- | :---------------------------------------------------------------------------------------------------------- |
-| 71:69  | `OpCode` | **Category**: CFG, BR, INT, EXT, REG_WR, MEM_WR, PORT_WR.                                                   |
-| 68     | `AI`     | **Address Immediate**: 1 = Use Payload [55:45] as address; 0 = Use Register.                                |
-| 67:66  | `DF`     | **Data Format**: 00=Addr, 01=16 signed immediate+rsD0+rsD1, 10=24b signed immediate+rsD0, 11=32b immediate. |
-| 65:63  | `COND`   | **Condition**: Z, S, NZ, NS, Flag, etc.                                                                     |
-| 62     | `SO`     | **Sub-Option**: Used to differentiate mnemonics within a category.                                          |
-| 61     | `TO`     | **Time Option**: 1 = Instruction is timed (uses `s14`); 0 = Immediate.                                      |
-| 60     | `UF`     | **Update Flag**: 1 = Update Z/S status flags based on result.                                               |
-| 59:56  | `SUB_OP` | **Sub-Operation**: ALU op code or secondary write enables.                                                  |
+| Bit(s) | Field                                                           | Description                                                                                                 |
+| :----- | :-------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
+| 71:69  | `OpCode`                                                        | **Category**: CFG, BR, INT, EXT, REG_WR, MEM_WR, PORT_WR.                                                   |
+| 68     | [AI](../../../qick_lib/qick/tprocv2_assembler.py#L1874-L1912)   | **Address Immediate**: 1 = Use Payload [55:45] as address; 0 = Use Register.                                |
+| 67:66  | `DF`                                                            | **Data Format**: 00=Addr, 01=16 signed immediate+rsD0+rsD1, 10=24b signed immediate+rsD0, 11=32b immediate. |
+| 65:63  | [COND](../../../qick_lib/qick/tprocv2_assembler.py#L1147-L1157) | **Condition**: Z, S, NZ, NS, Flag, etc.                                                                     |
+| 62     | [SO](../../../qick_lib/qick/tprocv2_assembler.py#L1202-L1307)   | **Sub-Option**: Used to differentiate mnemonics within a category.                                          |
+| 61     | `TO`                                                            | **Time Option**: 1 = Instruction is timed (uses `s14`); 0 = Immediate.                                      |
+| 60     | `UF`                                                            | **Update Flag**: 1 = Update Z/S status flags based on result.                                               |
+| 59:56  | `SUB_OP`                                                        | **Sub-Operation**: ALU op code or secondary write enables.                                                  |
 
 ### 4.2 Payload Bit-Fields [55:0]
-The payload (`op_data`) contains the operands, addresses, and destination register. Its interpretation is influenced by the Header bits (especially `AI` and `DF`).
+The payload (`op_data`) contains the operands, addresses, and destination register. Its interpretation is influenced by the Header bits (especially [AI](../../../qick_lib/qick/tprocv2_assembler.py#L1874-L1912) and `DF`).
 
 | Bit(s) | Default Field       | Description                                                                                                    |
 | :----- | :------------------ | :------------------------------------------------------------------------------------------------------------- |
@@ -128,7 +128,7 @@ The payload (`op_data`) contains the operands, addresses, and destination regist
 
 ## 5. Category-Specific Encoding Rules
 
-Within each 3-bit `OpCode`, the hardware uses `SO`, `TO`, and `SUB_OP` bits to decide the final execution logic.
+Within each 3-bit `OpCode`, the hardware uses [SO](../../../qick_lib/qick/tprocv2_assembler.py#L1202-L1307), `TO`, and `SUB_OP` bits to decide the final execution logic.
 
 ### 5.1 [001] BRANCH Category
 - **`JUMP`**: `SO = 0`. Jumps to target.
@@ -141,8 +141,8 @@ Within each 3-bit `OpCode`, the hardware uses `SO`, `TO`, and `SUB_OP` bits to d
 - **Fused Operation**: If `SUB_OP [59]` is 1, it allows writing to a second register or combining with other tasks.
 
 ### 5.3 [101] MEM_WR Category
-- **DMEM_WR**: `SO = 0`. Writes 32-bit `rsD0` to Data Memory.
-- **WMEM_WR**: `SO = 1`. Writes the 168-bit `WREG` packet to Waveform Memory.
+- **[DMEM_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1440-L1465)**: `SO = 0`. Writes 32-bit `rsD0` to Data Memory.
+- **[WMEM_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1466-L1493)**: `SO = 1`. Writes the 168-bit `WREG` packet to Waveform Memory.
 
 ### 5.4 [110] PORT_WR Category
 - **`DPORT_WR` / `RD`**: `SO = 0`. Interacts with 32-bit peripheral ports.
@@ -152,23 +152,23 @@ Within each 3-bit `OpCode`, the hardware uses `SO`, `TO`, and `SUB_OP` bits to d
 
 ### 5.5 [010] INT_CTRL Category
 - **`ALU_OP`**: The sub-opcode is encoded in the lower bits of the Header [59:56].
-- **Muxing**: Defines whether we are interacting with `FLAG`, `TIME`, `ARITH`, or `DIV`.
+- **Muxing**: Defines whether we are interacting with `FLAG`, `TIME`, [ARITH](../../../qick_lib/qick/tprocv2_assembler.py#L1799-L1873), or `DIV`.
 
 ---
 
 ## 6. Instruction Hierarchy Table
 
-The 3-bit `OpCode` [71:69] defines the **execution category**. Within each category, sub-fields (like `ALU_OP`, `COND`, or `Source/Dest` selection) define the specific assembly mnemonic.
+The 3-bit `OpCode` [71:69] defines the **execution category**. Within each category, sub-fields (like `ALU_OP`, [COND](../../../qick_lib/qick/tprocv2_assembler.py#L1147-L1157), or `Source/Dest` selection) define the specific assembly mnemonic.
 
-| OpCode (3b) | Category     | Assembly Mnemonics             | Description                                                 |
-| :---------- | :----------- | :----------------------------- | :---------------------------------------------------------- |
-| `000`       | **CFG**      | `NOP`, `TEST`                  | System config, no-op, or flag-only updates.                 |
-| `001`       | **BRANCH**   | `JUMP`, `CALL`, `RET`          | Control flow changes (Conditional or Unconditional).        |
-| `010`       | **INT_CTRL** | `FLAG`, `TIME`, `ARITH`, `DIV` | Internal logic (Flags, Time base, DSP, Divider).            |
-| `011`       | **EXT_CTRL** | `NET`, `COM`, `PA`, `PB`       | External connectivity (Network, Custom Peripherals).        |
-| `100`       | **REG_WR**   | `REG_WR`                       | Primary ALU unit (16 operations: ADD, SUB, AND, XOR, etc.). |
-| `101`       | **MEM_WR**   | `DMEM_WR`, `WMEM_WR`           | Memory storage (Data Memory or Waveform Memory).            |
-| `110`       | **PORT_WR**  | `TRIG`, `DPORT_WR`, `WPORT_WR` | External Port I/O (Triggers, Data, or Pulses).              |
+| OpCode (3b) | Category     | Assembly Mnemonics                                                                                                                     | Description                                                 |
+| :---------- | :----------- | :------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
+| `000`       | **CFG**      | `NOP`, `TEST`                                                                                                                          | System config, no-op, or flag-only updates.                 |
+| `001`       | **BRANCH**   | `JUMP`, `CALL`, `RET`                                                                                                                  | Control flow changes (Conditional or Unconditional).        |
+| `010`       | **INT_CTRL** | `FLAG`, `TIME`, [ARITH](../../../qick_lib/qick/tprocv2_assembler.py#L1799-L1873), `DIV`                                                | Internal logic (Flags, Time base, DSP, Divider).            |
+| `011`       | **EXT_CTRL** | `NET`, `COM`, `PA`, `PB`                                                                                                               | External connectivity (Network, Custom Peripherals).        |
+| `100`       | **REG_WR**   | [REG_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1351-L1439)                                                                      | Primary ALU unit (16 operations: ADD, SUB, AND, XOR, etc.). |
+| `101`       | **MEM_WR**   | [DMEM_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1440-L1465), [WMEM_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1466-L1493) | Memory storage (Data Memory or Waveform Memory).            |
+| `110`       | **PORT_WR**  | `TRIG`, `DPORT_WR`, `WPORT_WR`                                                                                                         | External Port I/O (Triggers, Data, or Pulses).              |
 
 ### 5.1 Category Deep Dive
 
@@ -178,7 +178,7 @@ The 3-bit `OpCode` [71:69] defines the **execution category**. Within each categ
 
 #### [001] BRANCH / Flow Control
 - **`JUMP`**: Standard branch. Target can be immediate (`AI=1`) or register-based (`AI=0`).
-- **`CALL`**: Subroutine call. Automatically saves `PC+1` into `s15` (`s_addr`).
+- **`CALL`**: Subroutine call. Automatically saves `PC+1` into `s15` ([s_addr](../../../qick_lib/qick/asm_v2.py#L2621-L2637)).
 - **`RET`**: Returns from a call by jumping to the address stored in `s15`.
 
 #### [010] INT_CTRL / Core Logic
@@ -186,14 +186,14 @@ The 3-bit `OpCode` [71:69] defines the **execution category**. Within each categ
 - **`TIME`**: Master clock management.
     - `SET T_ref`: Set base reference time.
     - `INC T_ref`: Increment reference to shift the 32-bit window.
-- **`ARITH`**: Accesses the DSP MAC unit for high-speed `((A*B)+C)` operations.
+- **[ARITH](../../../qick_lib/qick/tprocv2_assembler.py#L1799-L1873)**: Accesses the DSP MAC unit for high-speed [(A*B)+C](../../../qick_lib/qick/asm_v2.py#L566-L575) operations.
 - **`DIV`**: Accesses the Integer Divider (results placed in `s4`, `s5`).
 
 #### [100] REG_WR / General ALU
 This is the most common instruction. It supports **16 distinct operations**:
 - **Arithmetic**: `+`, `-`, `ABS`, `SWP` (Swap bytes).
-- **Logical**: `AND`, `OR`, `XOR`, `NOT`.
-- **Shifts**: `ASR` (Arithmetic Shift Right), `LSH` (Logical Shift), `SL` (Shift Left), `SR` (Shift Right).
+- **Logical**: `AND`, [OR](../../../qick_lib/qick/tprocv2_assembler.py#L1545-L1654), `XOR`, `NOT`.
+- **Shifts**: `ASR` (Arithmetic Shift Right), `LSH` (Logical Shift), `SL` (Shift Left), [SR](../../../qick_lib/qick/tprocv2_assembler.py#L421-L445) (Shift Right).
 - **Other**: `MSK` (Mask), `CAT` (Concatenate), `PAR` (Parity).
 
 #### [110] PORT_WR / I/O Dispatch
@@ -204,7 +204,7 @@ This is the most common instruction. It supports **16 distinct operations**:
 ---
 
 ## 6. Assembler Mnemonics
-The `tprocv2_assembler.py` translates high-level syntax:
+The [tprocv2_assembler.py](../../../tprocv2_assembler.py) translates high-level syntax:
 ```python
 # Example: Trigger port 5 and increment counter r10
 TRIG p5 set -wr(r10 op) -op(r10 + #1)
@@ -217,4 +217,4 @@ Into the binary:
 ## 7. Programming Best Practices
 1.  **Hazard Management**: Avoid reading a register immediately after writing to it in back-to-back instructions unless forwarding is confirmed for that specific path.
 2.  **Timing Determinism**: Always load `s14` before a sequence of pulse instructions to maintain phase-coherence.
-3.  **Fused Logic**: Use the `-wr` option in `PORT_WR` to handle loop increments without needing extra `REG_WR` cycles.
+3.  **Fused Logic**: Use the `-wr` option in [PORT_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1545-L1654) to handle loop increments without needing extra [REG_WR](../../../qick_lib/qick/tprocv2_assembler.py#L1351-L1439) cycles.
