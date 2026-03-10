@@ -24,13 +24,13 @@ This block compares the Source of the instruction in RD Stage with all the possi
 to see if the Data used in the current instruction is being processed. 
 
 Possible Sources are >
--A) DSW_REG
+-A) DSW_REG             //zpx: Data/Special/Wave Registers
 -B) DMEM
 -C) R_WAVE
 -D) CORE_R_DT
 -E) IN_PORT_DT
 -F) STATUS
--G) time_usr
+-G) time_usr            //zpx: From "QPROCC_CTRL"
 -H) s_addr
 -I) Flags ( -if() )
 -J) Random Number
@@ -45,12 +45,12 @@ module qcore_ctrl_hazard (
    input   wire               clk_i             ,
    input   wire               rst_ni            ,
    input   wire               halt_i            ,
-   input   wire [5:0]         rs_A_addr_i [2]   ,
-   input   wire [31:0]        rs_A_dt_i   [2]   ,
-   input   wire [6:0]         rs_D_addr_i [2]   ,
-   input   wire [31:0]        rs_D_dt_i   [2]   ,
+   input   wire [5:0]         rs_A_addr_i [2]   ,          //zpx: RD stage
+   input   wire [31:0]        rs_A_dt_i   [2]   ,          //zpx: RD stage
+   input   wire [6:0]         rs_D_addr_i [2]   ,          //zpx: RD stage
+   input   wire [31:0]        rs_D_dt_i   [2]   ,          //zpx: RD stage
    // Register 
-   input CTRL_REG             id_reg_i          ,
+   input CTRL_REG             id_reg_i          ,          //zpx: only id_reg is actually combinational logic
    input CTRL_REG             rd_reg_i          ,
    input CTRL_REG             x1_reg_i          ,
    input CTRL_REG             x2_reg_i          ,

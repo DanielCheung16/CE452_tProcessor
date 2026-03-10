@@ -19,7 +19,7 @@ import axi_mst_0_pkg::*;
 
 
 //`define T_TCLK         1.953125  // Half Clock Period for Simulation
-`define T_TCLK         1.302  // Half Clock Period for Simulation
+`define T_TCLK         1.017  // Half Clock Period for Simulation
 `define T_CCLK         2.5 // Half Clock Period for Simulation
 `define T_SCLK         5  // Half Clock Period for Simulation
 
@@ -44,7 +44,7 @@ import axi_mst_0_pkg::*;
 `define OUT_TRIG_QTY     8
 `define OUT_DPORT_QTY    2
 `define OUT_DPORT_DW     8
-`define OUT_WPORT_QTY    3 
+`define OUT_WPORT_QTY    8 
 
 module tb_qick_processor_issue35 ();
 
@@ -418,8 +418,8 @@ axis_qick_processor # (
    .port_3_dt_o          ( port_3_dt_o         ) );
 
 wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
-assign port_0_dt_i     = port_1_dt_o;
-assign port_0_vld      = port_0_dt_o[0];
+assign port_0_dt_i     = {63'd0, AXIS_QPROC.QPROC.port_we & (AXIS_QPROC.QPROC.out_port_data.p_addr == 0)}; // Fix hierarchy
+assign port_0_vld      = AXIS_QPROC.QPROC.port_we; // Fix hierarchy
 assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
 assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
 assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
@@ -475,10 +475,14 @@ initial begin
    
 //   $readmemb("/home/mdifeder/IPs/qick_processor/src/tb/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
 //   $readmemb("prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   $readmemh("prog_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   //$readmemb("/home/mdifeder/IPs/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemh("wave_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemh("dmem_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+   // $readmemh("prog_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   // //$readmemb("/home/mdifeder/IPs/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   // $readmemh("wave_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   // $readmemh("dmem_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+
+   $readmemh("prog_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemh("wave_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemh("dmem_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
 
 // INITIAL VALUES
@@ -491,9 +495,9 @@ initial begin
    port_1_dt_i     = 0;
    qcom_rdy_i    = 0 ;
    qpb_rdy_i    = 0 ;
-   periph_dt_i     = {0,0} ;
-   qnet_rdy_i      = 0 ;
-   qnet_dt_i [2]   = {0,0} ;
+    periph_dt_i     = '{default:'0} ;
+    qnet_rdy_i      = 0 ;
+    qnet_dt_i       = '{default:'0} ;
    proc_start_i   = 1'b0;
    proc_stop_i    = 1'b0;
    core_start_i   = 1'b0;
@@ -521,7 +525,7 @@ initial begin
 
        WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
     
-       #5us;
+       #10us;
        
        WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
     

@@ -109,20 +109,20 @@ The following table supplements the [previous format](#header_and_payload).
 
 ### 3.2 Master Instruction Table
 
-| Category    | Mnemonic       |  Op   |  AI   |  DF   | COND/SRC |  SO   |  TO   |  UF   |  Sub   | Payload Layout           |
-| :---------- | :------------- | :---: | :---: | :---: | :------: | :---: | :---: | :---: | :----: | :----------------------- |
-| **Control** | `jump`         |  001  |  AI   |  00   |   COND   |   0   |   0   |   0   |  0000  | `[IMM/rsA0, rsA1]`       |
-|             | `call`         |  001  |  AI   |  00   |   COND   |   1   |   0   |   0   |  0000  | `[IMM/rsA0, rsA1]`       |
-|             | `ret`          |  001  |   0   |  00   |   000    |   1   |   1   |   0   |  0000  | *Pops s15*               |
-| **Compute** | `reg_wr` (ALU) |  100  |  AI   |  DF   |   COND   |   0   |  TO   |  UF   | ALU_Op | `[rsD0, rsD1/IMM, RD]`   |
-|             | `wreg` (Bulk)  |  100  |  AI   |  00   |   000    |   1   |   0   |   0   |  0000  | `[IMM/rsA0, RD=WReg]`    |
-| **Memory**  | `dmem_wr`      |  101  |  AI   |  DF   |   COND   |   0   |  TO   |   0   |  0000  | `[IMM/rsA0, rsA1, rsD0]` |
-|             | `wmem_wr`      |  101  |  AI   |  00   |   000    |   1   |   0   |   0   |  0000  | `[IMM/rsA0, rsA1, WReg]` |
-| **Ports**   | `dport_wr`     |  110  |  AI   |  DF   |   001    |   0   |   0   |   0   |  0000  | `[rsA1=Port, rsD0]`      |
-|             | `dport_rd`     |  110  |  AI   |  DF   |   000    |   0   |   0   |   0   |  0000  | `[rsA1=Port, RD]`        |
-|             | `wport_wr`     |  110  |  AI   |  00   |   SRC    |   1   |  TO   |   0   |  0000  | `[rsA1=Port, rsA0/IMM]`  |
-| **System**  | `time`         |  010  |  AI   |  00   |   COND   |   0   |   0   |   0   | TimeOp | `[rsA0/IMM]`             |
-|             | `cfg`          |  000  |  AI   |  DF   |   COND   |  SO   |  TO   |  UF   | ALU_Op | `[rsD0, rsD1/IMM, RD]`   |
+| Category    | Mnemonic       |  Op   |  AI   |  DF   | SRC(header[8])/COND |  SO   |  TO   |  UF   |  Sub   | Payload Layout           |
+| :---------- | :------------- | :---: | :---: | :---: | :-----------------: | :---: | :---: | :---: | :----: | :----------------------- |
+| **Control** | `jump`         |  001  |  AI   |  00   |        COND         |   0   |   0   |   0   |  0000  | `[IMM/rsA0, rsA1]`       |
+|             | `call`         |  001  |  AI   |  00   |        COND         |   1   |   0   |   0   |  0000  | `[IMM/rsA0, rsA1]`       |
+|             | `ret`          |  001  |   0   |  00   |         000         |   1   |   1   |   0   |  0000  | *Pops s15*               |
+| **Compute** | `reg_wr` (ALU) |  100  |  AI   |  DF   |        COND         |   0   |  TO   |  UF   | ALU_Op | `[rsD0, rsD1/IMM, RD]`   |
+|             | `wreg` (Bulk)  |  100  |  AI   |  00   |         000         |   1   |   0   |   0   |  0000  | `[IMM/rsA0, RD=WReg]`    |
+| **Memory**  | `dmem_wr`      |  101  |  AI   |  DF   |        COND         |   0   |  TO   |   0   |  0000  | `[IMM/rsA0, rsA1, rsD0]` |
+|             | `wmem_wr`      |  101  |  AI   |  00   |         000         |   1   |   0   |   0   |  0000  | `[IMM/rsA0, rsA1, WReg]` |
+| **Ports**   | `dport_wr`     |  110  |  AI   |  DF   |         001         |   0   |   0   |   0   |  0000  | `[rsA1=Port, rsD0]`      |
+|             | `dport_rd`     |  110  |  AI   |  DF   |         000         |   0   |   0   |   0   |  0000  | `[rsA1=Port, RD]`        |
+|             | `wport_wr`     |  110  |  AI   |  00   |         SRC         |   1   |  TO   |   0   |  0000  | `[rsA1=Port, rsA0/IMM]`  |
+| **System**  | `time`         |  010  |  AI   |  00   |        COND         |   0   |   0   |   0   | TimeOp | `[rsA0/IMM]`             |
+|             | `cfg`          |  000  |  AI   |  DF   |        COND         |  SO   |  TO   |  UF   | ALU_Op | `[rsD0, rsD1/IMM, RD]`   |
 
 ---
 

@@ -1878,35 +1878,51 @@ class Instruction():
             current['ADDR'] = '&'+str(current['P_ADDR'])
         elif current['ADDR'] != 's15':
             raise RuntimeError('Instruction.WAIT: unrecognized ADDR %s in line %d' % (current['ADDR'], current['LINE']))
-        test_op   = ''
-        jump_cond = ''
+            
+        wait_mode = '0'
+        wait_cond = '000'
+        time_target = 0
+        
         if   (current['C_OP'] == 'time') : 
-            test_op   = 's11 - #' + str(int(current['TIME'][1:])-Assembler.WAIT_TIME_OFFSET)
-            jump_cond = 'S'
+            wait_mode = '1'
+            wait_cond = '010'
+            time_target = int(current['TIME'][1:]) - Assembler.WAIT_TIME_OFFSET
         elif (current['C_OP'] == 'port_dt') : 
-            test_op   = 's10 AND #h8000'
-            jump_cond = 'Z'
+            wait_mode = '0'
+            wait_cond = '001'
+            time_target = 0x8000
         elif (current['C_OP'] == 'div_rdy') : 
-            test_op   = 's10 AND #h4'
-            jump_cond = 'Z'
+            wait_mode = '0'
+            wait_cond = '001'
+            time_target = 0x4
         elif (current['C_OP'] == 'div_dt') : 
-            test_op   = 's10 AND #h8'
-            jump_cond = 'Z'
+            wait_mode = '0'
+            wait_cond = '001'
+            time_target = 0x8
         elif (current['C_OP'] == 'qpa_rdy') : 
-            test_op   = 's10 AND #h100'
-            jump_cond = 'Z'
+            wait_mode = '0'
+            wait_cond = '001'
+            time_target = 0x100
         elif (current['C_OP'] == 'qpa_dt') : 
-            test_op   = 's10 AND #h200'
-            jump_cond = 'Z'
+            wait_mode = '0'
+            wait_cond = '001'
+            time_target = 0x200
         else:
             msg = 'No Recognized Operation in line ' + str(current['LINE'])
             raise RuntimeError('Instruction.WAIT: ' + msg )
-        current['OP'] = test_op
-        current['UF'] = '1'
-        CODE = Instruction.CFG(current) ## ADD TEST INSTRUCTION
-        binary_multi_list.append(CODE)
-        current['IF'] = jump_cond
-        CODE = Instruction.BRANCH(current, '00') ## ADD JUMP INSTRUCTION
+
+        AI = wait_mode
+        DF = '11'
+        COND = wait_cond
+        SO = '0'
+        TO = '0'
+        CFG = '00000'
+        ADDR = '00000000000__000000'
+        DATA = '_' + integer2bin(str(time_target), 32)
+        RD = '0000000'
+        
+        CODE = '111_'+AI+DF+'__'+COND+'__'+SO+TO+'__'+CFG+"_______"+ADDR+'____'+DATA+'__'+RD 
+        
         binary_multi_list.append(CODE)
         return binary_multi_list
 

@@ -71,3 +71,7 @@ Temporary Items
 
 !/.gitignore
 !/README.md
+
+venvQICK/
+firmware/projects/tproc_452/
+firmware/ip/qick_processor_452/src/tb/generate_benchmarks

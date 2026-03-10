@@ -19,6 +19,7 @@
    parameter REG_WR      = 3'b100;
    parameter MEM_WR      = 3'b101;
    parameter PORT_WR     = 3'b110;
+   parameter WAIT        = 3'b111;
 
    typedef struct packed {
       bit         we    ;     //regular register write enable

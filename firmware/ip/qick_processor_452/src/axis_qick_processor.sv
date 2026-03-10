@@ -392,7 +392,7 @@ assign proc_start_t01   = proc_start_r & ~proc_start_r2 ;
 assign proc_stop_t01    = proc_stop_r  & ~proc_stop_r2 ;
 
 
-qick_processor# (
+qick_processor_452# (
    .DEBUG          ( DEBUG          ),
    .DUAL_CORE      ( DUAL_CORE      ),
    .LFSR           ( LFSR           ),
