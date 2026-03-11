@@ -11,6 +11,7 @@
    `define AXI_WDATA_WIDTH 32
    `define AXI_RDATA_WIDTH 32
    `define AXI_WSTRB_WIDTH 4 
+   `define QPROC_452       1
 
    parameter CFG         = 3'b000;
    parameter BRANCH      = 3'b001;

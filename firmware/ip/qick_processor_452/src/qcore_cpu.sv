@@ -367,11 +367,11 @@ always @(posedge clk_i) begin
    end
 end
 
-// WAIT INSTRUCTION
+// zpx: WAIT INSTRUCTION
 /////////////////////////////////////////////////
 
 wire wait_stall;
-assign wait_stall = id_AI ? (sreg_time_dt_i < id_imm_dt) : ((sreg_status_i & id_imm_dt) == 32'd0);
+assign wait_stall = id_AI ? ($signed(sreg_time_dt_i) < $signed(id_imm_dt)) : ((sreg_status_i & id_imm_dt) == 32'd0);
 
 // X1    - 4  FOURTH STAGE - ADDRESS CALCULATION - EXECUTE_1
 ///////////////////////////////////////////////////////////////////////////////////////////////////

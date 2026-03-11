@@ -74,4 +74,7 @@ Temporary Items
 
 venvQICK/
 firmware/projects/tproc_452/
-firmware/ip/qick_processor_452/src/tb/generate_benchmarks
+firmware/ip/qick_processor_452/src/tb/generate_benchmarks/*
+
+!firmware/ip/qick_processor_452/src/tb/generate_benchmarks/generate_rabi_asm.py
+!firmware/ip/qick_processor_452/src/tb/generate_benchmarks/export_rabi_mem.py

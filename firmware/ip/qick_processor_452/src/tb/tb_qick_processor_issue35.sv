@@ -480,10 +480,15 @@ initial begin
    // $readmemh("wave_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    // $readmemh("dmem_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
+`ifdef QPROC_452
+   $readmemh("new_prog_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemh("new_wave_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemh("new_dmem_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+`else
    $readmemh("prog_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
    $readmemh("wave_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    $readmemh("dmem_rabi.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
-
+`endif
 
 // INITIAL VALUES
 
